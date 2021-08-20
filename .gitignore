@@ -1,11 +1,13 @@
 # Random stuff
 out_backup
-reddit_credentials.json
+*credentials.json
 test.ipynb
 */datadata_persistency/
 magnitude/
 # */data
 
+# Spark
+spark-warehouse/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

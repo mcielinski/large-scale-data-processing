@@ -1,0 +1,28 @@
+version: '3.4'
+
+services:
+  # pySpark + ML
+  standalone_app:
+    build: .
+    command: [spark-submit, --packages, 'org.mongodb.spark:mongo-spark-connector_2.11:2.4.1', sample.py]
+    ports:
+      - 4040:4040
+    volumes:
+      - ./app:/app
+  
+  # MongoDB
+  mongodb:
+    image: mongo:latest
+    container_name: 'mongodb_l4'
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: reddit_db
+      MONGODB_DATA_DIR: /data/db
+      MONDODB_LOG_DIR: /dev/null
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo_db/mongo_init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./data_persistency/mongo_db:/data/db
