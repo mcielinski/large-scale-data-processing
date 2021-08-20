@@ -1,0 +1,29 @@
+
+version: "3"
+services:
+  nginx_service:
+    image: nginx
+    container_name: nginx_cont
+    volumes:
+      - .:/usr/share/nginx/html
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 50M
+        reservations:
+          cpus: '0.25'
+          memory: 20M
+    ports:
+        - "8080:80"
+    restart: on-failure
+    
+  check:
+    image: curlimages/curl
+    container_name: curl_cont
+    links:
+      - nginx_service
+    command:
+      - curl
+      - http://nginx_service:80
+    restart: on-failure
