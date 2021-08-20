@@ -1,0 +1,4 @@
+Flask==1.0.2
+numpy
+pyspark==2.3.4 # 3.0.1
+pymagnitude

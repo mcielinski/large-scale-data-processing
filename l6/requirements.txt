@@ -1,0 +1,4 @@
+pyspark==2.3.4 # 3.0.1
+pymongo
+numpy
+mleap

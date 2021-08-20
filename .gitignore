@@ -4,7 +4,7 @@ test.ipynb
 
 *credentials.json
 
-*/datadata_persistency/
+datadata_persistency/
 
 magnitude/
 *.magnitude
@@ -14,6 +14,7 @@ magnitude/
 influxdb/
 docker-compose/
 charts/
+models/
 
 # Spark
 spark-warehouse/

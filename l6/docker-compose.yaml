@@ -1,0 +1,58 @@
+version: '3.4'
+
+services:
+  # # pySpark + ML
+  # standalone_app:
+  #   build: .
+  #   command: [spark-submit, --packages, 'org.mongodb.spark:mongo-spark-connector_2.11:2.4.1', sample.py]
+  #   # command: [spark-submit, --packages, 'org.mongodb.spark:mongo-spark-connector_2.11:2.4.1,ml.combust.mleap:mleap-spark_2.11:0.13.0', sample.py] # conn 2.11:2.4.1
+  #   ports:
+  #     - 4040:4040
+  #   volumes:
+  #     - ./app:/app # - ./app:/app
+  
+  # # MongoDB
+  # mongodb:
+  #   image: mongo:latest
+  #   container_name: 'mongodb_l6'
+  #   restart: always
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: user
+  #     MONGO_INITDB_ROOT_PASSWORD: password
+  #     MONGO_INITDB_DATABASE: reddit_db
+  #     MONGODB_DATA_DIR: /data/db
+  #     MONDODB_LOG_DIR: /dev/null
+  #   ports:
+  #     - 27017:27017
+  #   volumes:
+  #     - ./mongo_db/mongo_init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+  #     - ./data_persistency/mongo_db:/data/db
+
+  # # flask - embedder
+  # flask-embedder:
+  #   build: ./embedder
+  #   ports:
+  #     - 56733:80
+  #   volumes:
+  #     - ./embedder:/app
+
+  # flask - spark
+  flask-spark:
+    build: ./flask-spark
+    ports:
+      - 8081:8080
+    volumes:
+      - ./flask-spark/app:/app
+    command: [spark-submit, app.py]
+  
+  # streamlit
+  streamlit:
+    build: ./streamlit
+    command: "streamlit run main.py"
+    ports:
+      - "8501:8501"
+    volumes:
+      # - ./streamlit/app:/app
+      - "./streamlit/app:/usr/src/app"
+    links:
+      - flask-spark
