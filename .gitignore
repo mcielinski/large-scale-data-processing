@@ -2,7 +2,9 @@
 out_backup
 reddit_credentials.json
 test.ipynb
-*/data
+*/datadata_persistency/
+magnitude/
+# */data
 
 
 # Byte-compiled / optimized / DLL files
