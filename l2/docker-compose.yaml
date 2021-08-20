@@ -1,0 +1,52 @@
+version: '3.4'
+services: 
+  worker:
+    build: .
+    image: &img worker 
+    command: [celery, worker, --app=worker.app, --beat]
+    environment: &env      
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
+      - CELERY_RESULT_BACKEND=rpc
+    depends_on:
+      - rabbitmq
+      - db
+    volumes:
+      - ./app:/app 
+
+  runner:
+    build: .
+    image: *img
+    command: [python, runner.py]
+    environment: *env
+    depends_on:
+      - rabbitmq
+      - db
+    volumes:
+      - ./app:/app
+
+  rabbitmq:
+    image: rabbitmq:3.8
+    environment:
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log [{console,[{level,warning}]}]
+
+  db:
+    image: influxdb:latest
+    container_name: db
+    ports:
+      - '8083:8083'
+      - '8086:8086'
+      - '8090:8090'
+    volumes:
+      - /influxdb/data:/var/lib/influxdb
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - '3000:3000'
+    user: "0"
+    depends_on:
+      - db
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+  
