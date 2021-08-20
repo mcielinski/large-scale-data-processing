@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -c
+    kompose.version: 1.22.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: scraping-worker
+  name: scraping-worker
+spec:
+  replicas: {{ .Values.scrapingWorkerReplicas }}
+  selector:
+    matchLabels:
+      io.kompose.service: scraping-worker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -c
+        kompose.version: 1.22.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: scraping-worker
+    spec:
+      containers:
+        - args:
+            - celery
+            - worker
+            - --app=scraper_worker.app
+            - --queues=scraping_queue
+            - --beat
+            - -E
+            - -s=/tmp/celerybeat-schedule
+          env:
+            - name: INFLUXDB_HOST
+              value: {{ .Release.Name }}{{ .Values.influxdbHost }}
+            - name: INFLUXDB_PORT
+              value: "{{ .Values.influxdbPort }}"
+            - name: INFLUXDB_USERNAME
+              value: {{ .Values.influxdb.adminUser.name }}
+            - name: INFLUXDB_PASSWORD
+              value: {{ .Values.influxdb.adminUser.pwd }}
+            - name: CELERY_BROKER_URL
+              value: "{{ .Values.celeryBrokerProtocol }}://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Release.Name }}-rabbitmq.default.svc:{{ .Values.rabbitmq.service.port }}"
+            - name: CELERY_RESULT_BACKEND
+              value: {{ .Values.celeryResultBackend }}
+          image: marcelci/lsdp_app
+          name: scraping-worker
+          resources: {}
+      restartPolicy: Always
+status: {}

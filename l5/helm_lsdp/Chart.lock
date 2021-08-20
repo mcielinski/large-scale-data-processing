@@ -1,0 +1,18 @@
+dependencies:
+- name: rabbitmq
+  repository: https://charts.bitnami.com/bitnami
+  version: 8.6.1
+- name: influxdb
+  repository: https://charts.bitnami.com/bitnami
+  version: 1.1.7
+- name: grafana
+  repository: https://charts.bitnami.com/bitnami
+  version: 4.2.5
+- name: mongodb
+  repository: https://charts.bitnami.com/bitnami
+  version: 10.3.4
+- name: redash
+  repository: https://getredash.github.io/contrib-helm-chart/
+  version: 2.3.0
+digest: sha256:cbbaec9d3769d014c94b3565a7a97cdcf4f731144dea473d2744158abff1bdd6
+generated: "2021-01-07T22:16:22.635878+01:00"

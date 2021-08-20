@@ -1,0 +1,16 @@
+# https://leadwithoutatitle.wordpress.com/2018/03/05/how-to-deploy-mongodb-with-persistent-volume-in-kubernetes/
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: influx-db
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: {{ .Values.volumeInfluxDB }}
+status: {}

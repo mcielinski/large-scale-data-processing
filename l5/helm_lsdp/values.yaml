@@ -1,0 +1,155 @@
+# Default values for helm_lsdp.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+schedulerReplicas: 1
+scrapingWorkerReplicas: 1
+embeddingWorkerReplicas: 1
+databaseWorkerReplicas: 1
+
+
+celeryBrokerProtocol: amqp
+celeryResultBackend: rpc
+
+# influxdbAdmin: root
+influxdbHost: -influxdb.default.svc.cluster.local
+influxdbPort: 8086
+
+mongodbHost: mongodb
+# mongodbHost: -mongodb.default.svc.cluster.local
+# mongodbHost: -mongodb
+mongodbPort: 27017
+
+volumeInfluxDB: "/home/ubuntu/l5-tn19-mrcell-git/influx-db"
+volumeMongoDB: "/home/ubuntu/l5-tn19-mrcell-git/mongo-db"
+
+# https://bitnami.com/stack/rabbitmq/helm
+# https://github.com/bitnami/charts/tree/master/bitnami/rabbitmq/
+rabbitmq:
+  auth:
+    username: username
+    password: password
+  service:
+    port: 5672
+
+# https://bitnami.com/stack/influxdb/helm
+# https://github.com/bitnami/charts/tree/master/bitnami/influxdb/
+influxdb:
+  adminUser:
+    name: root
+    pwd: root
+  persistence:
+    existingClaim: influx-db
+  volumePermissions:
+    enabled: true
+
+# https://bitnami.com/stack/grafana/helm
+# https://github.com/bitnami/charts/tree/master/bitnami/grafana/
+grafana:
+  admin:
+    user: admin
+    password: password
+  service:
+    type: NodePort
+
+# https://bitnami.com/stack/mongodb/helm
+# https://github.com/bitnami/charts/tree/master/bitnami/mongodb/
+mongodb:
+  auth:
+    username: user
+    password: password
+    database: reddit_db
+  persistence:
+    existingClaim: mongo-db
+  volumePermissions:
+    enabled: true
+
+# https://github.com/getredash/contrib-helm-chart
+redash:
+  redash:
+    cookieSecret: secret
+    secretKey: secret
+  postgresql:
+    postgresqlPassword: password
+  # redis.password: password
+  service:
+    type: NodePort
+
+
+# ________________________________________________________________________________________
+
+# replicaCount: 1
+
+# image:
+#   repository: nginx
+#   pullPolicy: IfNotPresent
+#   # Overrides the image tag whose default is the chart appVersion.
+#   tag: ""
+
+# imagePullSecrets: []
+# nameOverride: ""
+# fullnameOverride: ""
+
+# serviceAccount:
+#   # Specifies whether a service account should be created
+#   create: true
+#   # Annotations to add to the service account
+#   annotations: {}
+#   # The name of the service account to use.
+#   # If not set and create is true, a name is generated using the fullname template
+#   name: ""
+
+# podAnnotations: {}
+
+# podSecurityContext: {}
+#   # fsGroup: 2000
+
+# securityContext: {}
+#   # capabilities:
+#   #   drop:
+#   #   - ALL
+#   # readOnlyRootFilesystem: true
+#   # runAsNonRoot: true
+#   # runAsUser: 1000
+
+# service:
+#   type: ClusterIP
+#   port: 80
+
+# ingress:
+#   enabled: false
+#   annotations: {}
+#     # kubernetes.io/ingress.class: nginx
+#     # kubernetes.io/tls-acme: "true"
+#   hosts:
+#     - host: chart-example.local
+#       paths: []
+#   tls: []
+#   #  - secretName: chart-example-tls
+#   #    hosts:
+#   #      - chart-example.local
+
+# resources: {}
+#   # We usually recommend not to specify default resources and to leave this as a conscious
+#   # choice for the user. This also increases chances charts run on environments with little
+#   # resources, such as Minikube. If you do want to specify resources, uncomment the following
+#   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+#   # limits:
+#   #   cpu: 100m
+#   #   memory: 128Mi
+#   # requests:
+#   #   cpu: 100m
+#   #   memory: 128Mi
+
+# autoscaling:
+#   enabled: false
+#   minReplicas: 1
+#   maxReplicas: 100
+#   targetCPUUtilizationPercentage: 80
+#   # targetMemoryUtilizationPercentage: 80
+
+# nodeSelector: {}
+
+# tolerations: []
+
+# affinity: {}

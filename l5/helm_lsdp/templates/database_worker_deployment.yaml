@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -c
+    kompose.version: 1.22.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: database-worker
+  name: database-worker
+spec:
+  replicas: {{ .Values.databaseWorkerReplicas }}
+  selector:
+    matchLabels:
+      io.kompose.service: database-worker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -c
+        kompose.version: 1.22.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: database-worker
+    spec:
+      containers:
+        - args:
+            - celery
+            - worker
+            - --app=database_worker.app
+            - --queues=database_queue
+            - --beat
+            - -E
+            - -s=/tmp/celerybeat-schedule
+          env:
+            - name: INFLUXDB_HOST
+              value: {{ .Release.Name }}{{ .Values.influxdbHost }}
+            - name: INFLUXDB_PORT
+              value: "{{ .Values.influxdbPort }}"
+            - name: INFLUXDB_USERNAME
+              value: {{ .Values.influxdb.adminUser.name }}
+            - name: INFLUXDB_PASSWORD
+              value: {{ .Values.influxdb.adminUser.pwd }}
+            - name: MONGO_DB_HOSTNAME
+              value: {{ .Values.mongodbHost }}
+            - name: MONGO_DB_PORT
+              value: "{{ .Values.mongodbPort }}"
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: {{ .Values.mongodb.auth.username }}
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: {{ .Values.mongodb.auth.password }}
+            - name: MONGO_INITDB_DATABASE
+              value: {{ .Values.mongodb.auth.database }}
+            - name: CELERY_BROKER_URL
+              value: "{{ .Values.celeryBrokerProtocol }}://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Release.Name }}-rabbitmq.default.svc:{{ .Values.rabbitmq.service.port }}"
+            - name: CELERY_RESULT_BACKEND
+              value: {{ .Values.celeryResultBackend }}
+          image: marcelci/lsdp_app
+          name: database-worker
+          resources: {}
+      restartPolicy: Always
+status: {}

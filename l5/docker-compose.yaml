@@ -1,0 +1,221 @@
+version: '3.4'
+# Redash: https://github.com/getredash/redash/blob/master/docker-compose.yml
+# x-redash-service: &redash-service
+#   build:
+#     context: .
+#     args:
+#       skip_frontend_build: "true"
+#   volumes:
+#     - .:/app
+x-redash-service: &redash-service
+  image: redash/redash:8.0.0.b32245
+  depends_on:
+    - postgres
+    - redis
+  restart: always
+
+x-redash-environment: &redash-environment
+  REDASH_LOG_LEVEL: "INFO"
+  REDASH_REDIS_URL: "redis://redis:6379/0"
+  REDASH_COOKIE_SECRET: "password"
+  REDASH_SECRET_KEY: "password"
+  POSTGRES_PASSWORD: "password"
+  REDASH_DATABASE_URL: "postgresql://postgres:password@postgres/postgres"
+  REDASH_RATELIMIT_ENABLED: "false"
+  REDASH_MAIL_DEFAULT_SENDER: "redash@example.com"
+  REDASH_MAIL_SERVER: "email"
+  REDASH_ENFORCE_CSRF: "true"
+
+
+services:
+  # Redash
+  server:
+    <<: *redash-service
+    command: server
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "5000:5000"
+      - "5678:5678"
+    environment:
+      <<: *redash-environment
+      PYTHONUNBUFFERED: 0
+  scheduler:
+    <<: *redash-service
+    command: scheduler
+    depends_on:
+      - server
+    environment:
+      <<: *redash-environment
+  worker:
+    <<: *redash-service
+    command: worker
+    depends_on:
+      - server
+    environment:
+      <<: *redash-environment
+      PYTHONUNBUFFERED: 0
+  redis:
+    image: redis:3-alpine
+    restart: unless-stopped
+  postgres:
+    image: postgres:9.5-alpine
+    # The following turns the DB into less durable, but gains significant performance improvements for the tests run (x3
+    # improvement on my personal machine). We should consider moving this into a dedicated Docker Compose configuration for
+    # tests.
+    ports:
+      - "15432:5432"
+    command: "postgres -c fsync=off -c full_page_writes=off -c synchronous_commit=OFF"
+    #volumes:
+    #  - ./data_persistency/redash:/var/lib/postgresql/data
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+  nginx:
+    image: redash/nginx:latest
+    ports:
+      - "8084:80"
+      #- "80:80"
+    depends_on:
+      - server
+    links:
+      - server:redash
+    restart: always
+
+  # Scheduler entry (from previous task list)
+  scheduler:
+    build: .
+    image: &img worker 
+    command: [celery, worker, --app=worker.app, --beat]
+    environment: &env      
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
+      - CELERY_RESULT_BACKEND=rpc
+    depends_on:
+      - rabbitmq
+    restart: on-failure
+    volumes: &volume
+      - ./app:/app
+  
+  # Scraping Worker entry (from previous task list)
+  scraping_worker:
+    build: .
+    image: *img
+    container_name: 'scraping_worker'
+    command: [celery, worker, --app=scraper_worker.app, --queues=scraping_queue, --beat]
+    environment: *env
+    depends_on:
+      - rabbitmq
+      - db  # added
+    volumes: *volume
+  
+  # Embedding worker
+  embedding_worker:
+    build: .
+    image: *img
+    container_name: 'embedding_worker'
+    command: [celery, worker, --app=embedding_worker.app, --queues=embedding_queue, --beat]
+    environment: *env
+    depends_on:
+      - rabbitmq
+    volumes: *volume
+  
+  # Database worker
+  database_worker:
+    build: .
+    image: *img
+    container_name: 'database_worker'
+    command: [celery, worker, --app=database_worker.app, --queues=database_queue, --beat]
+    environment: *env
+    depends_on:
+      - rabbitmq
+      - mongodb
+    volumes: *volume
+    links:
+      - mongodb
+
+  # RabbitMQ entry (from previous task list)
+  rabbitmq:
+    image: rabbitmq:3.8
+    container_name: 'rabbitmq'
+    environment:
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log [{console,[{level,warning}]}]
+  
+  # InfluxDB
+  db:
+    image: influxdb:latest
+    container_name: db
+    ports:
+      - '8083:8083'
+      - '8086:8086'
+      - '8090:8090'
+    volumes:
+      - ./influxdb/data:/var/lib/influxdb
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - '3000:3000'
+    user: "0"
+    depends_on:
+      - db
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+
+  # pySpark + ML
+  standalone_app:
+    build: ./app_ml
+    command: [spark-submit, --packages, 'org.mongodb.spark:mongo-spark-connector_2.11:2.4.1', sample.py]
+    ports:
+      - 4040:4040
+    volumes:
+      - ./app:/app
+  
+  # MongoDB
+  mongodb:
+    image: mongo:latest
+    container_name: 'mongodb'
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: reddit_db
+      MONGODB_DATA_DIR: /data/db
+      MONDODB_LOG_DIR: /dev/null
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo_db/mongo_init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./data_persistency/mongo_db:/data/db
+
+
+
+# l4
+# services:
+#   # pySpark + ML
+#   standalone_app:
+#     build: .
+#     command: [spark-submit, --packages, 'org.mongodb.spark:mongo-spark-connector_2.11:2.4.1', sample.py]
+#     ports:
+#       - 4040:4040
+#     volumes:
+#       - ./app:/app
+  
+#   # MongoDB
+#   mongodb:
+#     image: mongo:latest
+#     container_name: 'mongodb_l4'
+#     restart: always
+#     environment:
+#       MONGO_INITDB_ROOT_USERNAME: user
+#       MONGO_INITDB_ROOT_PASSWORD: password
+#       MONGO_INITDB_DATABASE: reddit_db
+#       MONGODB_DATA_DIR: /data/db
+#       MONDODB_LOG_DIR: /dev/null
+#     ports:
+#       - 27017:27017
+#     volumes:
+#       - ./mongo_db/mongo_init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+#       - ./data_persistency/mongo_db:/data/db

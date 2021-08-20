@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -c
+    kompose.version: 1.22.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: embedding-worker
+  name: embedding-worker
+spec:
+  replicas: {{ .Values.embeddingWorkerReplicas }}
+  selector:
+    matchLabels:
+      io.kompose.service: embedding-worker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -c
+        kompose.version: 1.22.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: embedding-worker
+    spec:
+      containers:
+        - args:
+            - celery
+            - worker
+            - --app=embedding_worker.app
+            - --queues=embedding_queue
+            - --beat
+            - -E
+            - -s=/tmp/celerybeat-schedule
+          env:
+            - name: INFLUXDB_HOST
+              value: {{ .Release.Name }}{{ .Values.influxdbHost }}
+            - name: INFLUXDB_PORT
+              value: "{{ .Values.influxdbPort }}"
+            - name: INFLUXDB_USERNAME
+              value: {{ .Values.influxdb.adminUser.name }}
+            - name: INFLUXDB_PASSWORD
+              value: {{ .Values.influxdb.adminUser.pwd }}
+            - name: CELERY_BROKER_URL
+              value: "{{ .Values.celeryBrokerProtocol }}://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Release.Name }}-rabbitmq.default.svc:{{ .Values.rabbitmq.service.port }}"
+            - name: CELERY_RESULT_BACKEND
+              value: {{ .Values.celeryResultBackend }}
+          image: marcelci/lsdp_app
+          name: embedding-worker
+          resources: {}
+      restartPolicy: Always
+status: {}

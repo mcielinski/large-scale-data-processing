@@ -1,10 +1,19 @@
 # Random stuff
 out_backup
-*credentials.json
 test.ipynb
+
+*credentials.json
+
 */datadata_persistency/
+
 magnitude/
+*.magnitude
+
 # */data
+
+influxdb/
+docker-compose/
+charts/
 
 # Spark
 spark-warehouse/
